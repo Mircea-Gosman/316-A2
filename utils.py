@@ -1,4 +1,5 @@
 import sys
+import math
 import cv2
 from matplotlib.colors import LogNorm
 
@@ -11,6 +12,16 @@ def exit_with_error(error):
         print("Expected mode to be an integer in range [1, 4]")
 
     exit(1)
+
+
+def pad_image(image):
+    power_of_2 = lambda x: 2**(math.ceil(math.log2(x)))
+    new_dim = lambda x: x if (x & (x-1) == 0) and x != 0 else power_of_2(x)
+    
+    height = new_dim(image.shape[1])
+    width = new_dim(image.shape[0])
+
+    return cv2.resize(image, dsize=(height, width), interpolation=cv2.INTER_CUBIC)
 
 
 def check_CLI():
@@ -38,9 +49,10 @@ def check_CLI():
                 exit_with_error("syntax")
 
             args["image"] = cv2.imread(sys.argv[i + 1])
-            
 
     if args["image"] is None:
         exit_with_error("path")
+
+    args["image"] = pad_image(args["image"])
 
     return args

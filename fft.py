@@ -3,6 +3,8 @@ import fourier_operations as Fourier
 
 def run_fast_mode(image):
     # Perform transform from Fourier
+    f_transform = Fourier.fast_transform(image)
+
     # Display original image
     # Display Log scale transform
     pass
