@@ -1,16 +1,16 @@
 import utils as Utils
-import fourier_operations as Fourier
+from fourier_operations import Fourier
 
-def run_fast_mode(image):
+def run_fast_mode(image, fourier):
     # Perform transform from Fourier
-    f_transform = Fourier.fast_transform(image)
+    initial_image = image
+    f_transform = fourier.fast_transform(image)
 
-    # Display original image
-    # Display Log scale transform
+    # Display original image & Log scale transform
     pass
 
 
-def denoise(image):
+def denoise(image, fourier):
     # Perform transform from Fourier
     # Set high frequencies to zero, CLI print number of non zero values left
     # Perform inverse transform from Fourier
@@ -19,7 +19,7 @@ def denoise(image):
     pass
 
 
-def compress(image):
+def compress(image, fourier):
     # Perform transform from Fourier
     # Save matrix of coefficients to csv 
     # Set some coefficients to zero (6 different amounts of compression: {0, ... , 95%})
@@ -30,7 +30,7 @@ def compress(image):
     pass
 
 
-def plot(image):
+def plot(image, fourier):
     # Loop 10 times:
         # Create 2D arrays from sizes [2^5, 2^10] with random values
         # Record naive transform runtime for each
@@ -44,12 +44,13 @@ def plot(image):
 
 if __name__ == "__main__":
     args = Utils.check_CLI()
+    fourier = Fourier()
 
     if args["mode"] == 1:
-        run_fast_mode(args["image"])
+        run_fast_mode(args["image"], fourier)
     if args["mode"] == 2:
-        denoise(args["image"])
+        denoise(args["image"], fourier)
     if args["mode"] == 3:
-        compress(args["image"])
+        compress(args["image"], fourier)
     if args["mode"] == 4:
-        plot(args["image"])
+        plot(args["image"], fourier)
