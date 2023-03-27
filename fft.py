@@ -10,10 +10,11 @@ def run_fast_mode(image, fourier):
 
     # Display original image & Log scale transform
     n = np.array([[ [i] * f_transform.shape[2] for i  in range(f_transform.shape[1])] for j in range (f_transform.shape[0])])    
-    figure, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(5,5))
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(5,5))
     ax1.imshow(image)
-    ax2.scatter(n , f_transform, norm=colors.LogNorm())
-    ax3.scatter(n , np.fft.fft2(image), norm=colors.LogNorm())
+    ax2.scatter(n[:,:,0] , f_transform[:,:,0], norm=colors.LogNorm())
+    # ax3.scatter(n[:,:,0], np.fft.fft2(image[:,:,0]), norm=colors.LogNorm())
+    plt.yscale('log')
     plt.show()
 
 
