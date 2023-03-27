@@ -1,7 +1,6 @@
 import sys
 import math
 import cv2
-from matplotlib.colors import LogNorm
 
 def exit_with_error(error):
     if error == "syntax":

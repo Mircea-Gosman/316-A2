@@ -1,13 +1,20 @@
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import utils as Utils
 from fourier_operations import Fourier
+import numpy as np
 
 def run_fast_mode(image, fourier):
     # Perform transform from Fourier
-    initial_image = image
     f_transform = fourier.fast_transform(image)
 
     # Display original image & Log scale transform
-    pass
+    n = np.array([[ [i] * f_transform.shape[2] for i  in range(f_transform.shape[1])] for j in range (f_transform.shape[0])])    
+    figure, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(5,5))
+    ax1.imshow(image)
+    ax2.scatter(n , f_transform, norm=colors.LogNorm())
+    ax3.scatter(n , np.fft.fft2(image), norm=colors.LogNorm())
+    plt.show()
 
 
 def denoise(image, fourier):

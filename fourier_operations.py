@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-FFT_REC_THRESHOLD = 25 # TODO: Experiment on that number
+FFT_REC_THRESHOLD = 100 # TODO: Experiment on that number
 
 create_index_map = lambda signal, w, h: np.array([[ [i] * signal.shape[2] for i in range(signal.shape[w]) ] for j in range(signal.shape[h]) ])
 X_k = lambda f, index, k: np.sum(f * math.e**( (-2j * math.pi * k * index) / f.shape[1]), axis=1)
