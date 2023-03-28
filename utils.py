@@ -1,6 +1,7 @@
 import sys
 import math
 import cv2
+import numpy as np
 
 def exit_with_error(error):
     if error == "syntax":
@@ -55,3 +56,17 @@ def check_CLI():
     args["image"] = pad_image(args["image"])
 
     return args
+
+
+def selection_matrix(shape, factor):
+    one_dimension = np.ones(shape[0] * shape[1])
+    indices_to_delete = np.random.choice(one_dimension, shape[0] * shape[1] * factor)
+    one_dimension[indices_to_delete] = 0
+
+    two_dims = np.reshape(one_dimension, (shape[0], shape[1]))
+
+    # Add back channels
+    return  np.stack((two_dims,)*shape[-1], axis=-1)
+
+
+
