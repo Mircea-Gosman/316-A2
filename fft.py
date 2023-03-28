@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import utils as Utils
 from fourier_operations import Fourier
+from fourier_operations import create_index_map
 import numpy as np
 import math
+from time import time
 
 def run_fast_mode(image, fourier):
     # Perform transform from Fourier
@@ -23,9 +25,11 @@ def denoise(image, fourier):
     # Perform transform from Fourier
     f_transform = fourier.fast_transform(image)
 
-    # Set high frequencies to zero, CLI print number of non zero values left [ high frequencies -> 2pi/N * k close to 0]
+    # Set high frequencies to zero, CLI print number of non zero values left [ high frequencies -> 2pi/N * k not close to 0]
     HIGH_FREQ_THRESH = math.pi * 1./2  # TODO: experiment with that number
-    f_transform[2. * math.pi / f_transform.shape[1] > HIGH_FREQ_THRESH] = 0 # TODO: multiply condition by k
+    frequencies = create_index_map(f_transform, 1, 0) * 2. * math.pi / f_transform.shape[1]
+    f_transform[frequencies < HIGH_FREQ_THRESH] = 0
+    f_transform[frequencies > (2. * math.pi - HIGH_FREQ_THRESH)] = 0
 
     # Perform inverse transform from Fourier
     inverse_transform = fourier.fast_transform(f_transform, inverse=True)
@@ -65,16 +69,35 @@ def compress(image, fourier):
     plt.show()
 
 
-def plot(image, fourier):
+def plot(fourier):
+    num_iterations = 10
+    sizes = [2**5, 2**6, 2**7, 2**8,2**9,2**10]
+    times = np.empty((2, len(sizes), num_iterations)) # [ naive[size][iteration], fast[size][iteration] ]
+
     # Loop 10 times:
         # Create 2D arrays from sizes [2^5, 2^10] with random values
         # Record naive transform runtime for each
         # Record fast transform runtime for each
+    for i in range(num_iterations):
+        for s in range(len(sizes)):            
+            for t in range(len(times)):
+                signal = np.random.rand(sizes[s], sizes[s], 3)
+                start = time()
+                _ = fourier.fast_transform(signal) if t == 1 else fourier.normal_transform(signal)
+                times[t][s][i] = time() - start
+                print(f'{t} {s} {i}')
 
     # Record mean and standard deviation per problem size
+    np_times = np.array(times)
+    means = np.average(np_times, axis=-1)
+    standard_deviations = np.std(np_times, axis=-1)
+
     # Plot: x -> problem size, y -> corresponding runtime mean
-    # Include error bars to be (twice?) the standard deviation 
-    pass
+    # Include error bars to be twice the standard deviation 
+    plt.errorbar(sizes, means[0], yerr= 2*standard_deviations[0], label = "Naive")
+    plt.errorbar(sizes, means[1], yerr= 2*standard_deviations[1], label = "Fast")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -88,4 +111,4 @@ if __name__ == "__main__":
     if args["mode"] == 3:
         compress(args["image"], fourier)
     if args["mode"] == 4:
-        plot(args["image"], fourier)
+        plot(fourier)
