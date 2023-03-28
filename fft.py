@@ -46,7 +46,7 @@ def compress(image, fourier):
     f_transform = fourier.fast_transform(image)
 
     # Save matrix of coefficients to csv 
-    np.savetxt("compression_fourier_transform.csv", f_transform, delimiter=",")
+    np.savetxt("compression_fourier_transform.csv", f_transform[:, :, 0], delimiter=",") # Saving only 1 channel for demo purposes
     
     # Set some coefficients to zero (6 different amounts of compression: {0, ... , 95%}), TODO: should experiment with selection scheme
     compression_factors = [ 0, 0.19, 0.38, 0.57, 0.76, 0.95 ]
@@ -56,14 +56,14 @@ def compress(image, fourier):
     # CLI Print number of non zero coeffs left in each image
     for i in range(6):
         original_size = transforms[i].shape[0] * transforms[i].shape[1]
-        print(f'Image {i} is using {transforms[i].shape[0] * (1 - compression_factors[i])} out of {original_size}')
+        print(f'Image {i} is using {int(original_size * (1 - compression_factors[i]))} out of {original_size}')
 
-    # Inverse the 6 resulting transforms
+    # Inverse each of the 6 resulting transforms
     inverse_transforms = [ fourier.fast_transform(transforms[i], inverse=True) for i in range(6) ]
 
     # Display the 6 images
     figure, axes = plt.subplots(2, 3, figsize=(5,5))
-    for i in range(axes):
+    for i in range(len(axes)):
         axes[i].imshow(inverse_transforms[i])
 
     plt.show()
@@ -85,7 +85,6 @@ def plot(fourier):
                 start = time()
                 _ = fourier.fast_transform(signal) if t == 1 else fourier.normal_transform(signal)
                 times[t][s][i] = time() - start
-                print(f'{t} {s} {i}')
 
     # Record mean and standard deviation per problem size
     np_times = np.array(times)

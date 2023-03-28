@@ -60,7 +60,7 @@ def check_CLI():
 
 def selection_matrix(shape, factor):
     one_dimension = np.ones(shape[0] * shape[1])
-    indices_to_delete = np.random.choice(one_dimension, shape[0] * shape[1] * factor)
+    indices_to_delete = np.random.choice(len(one_dimension), size=int(shape[0] * shape[1] * factor), replace=False)
     one_dimension[indices_to_delete] = 0
 
     two_dims = np.reshape(one_dimension, (shape[0], shape[1]))
