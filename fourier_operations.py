@@ -4,7 +4,7 @@ import math
 FFT_REC_THRESHOLD = 100 # TODO: Experiment on that number
 
 create_index_map = lambda signal, w, h: np.array([[ [i] * signal.shape[2] for i in range(signal.shape[w]) ] for j in range(signal.shape[h]) ])
-X_k = lambda f, index, k: np.sum(f * math.e**( (-2j * math.pi * k * index) / f.shape[1]), axis=1)
+X_k = lambda f, index, k: np.sum(f*math.e**( (-1j * 2 * math.pi * k * index) / f.shape[1]), axis=1)
 
 
 class Fourier:
@@ -12,28 +12,28 @@ class Fourier:
         one_dimension_transform = lambda f, index: np.array([ X_k(f, index, k) for k in range(f.shape[1])])
 
         index_map_M = create_index_map(signal, 1, 0)
-        index_map_N = create_index_map(signal, 0, 1)
+        index_map_N = create_index_map(signal, 0, 1).transpose(1,0,2)
 
-        one_dim_result_transposed = one_dimension_transform(signal, index_map_M)
+        one_dim_result_transposed = one_dimension_transform(signal, index_map_M).transpose(1,0,2)
         two_dim_result = one_dimension_transform(one_dim_result_transposed, index_map_N)
 
         return two_dim_result
 
 
     def fast_transform(self, signal, inverse=False):
-        coef = lambda k, N: math.e** (-2j * math.pi * k / N)
+        coef = lambda k, N: math.e** (-1j * 2 * math.pi * k / N)
         op = X_k
 
         # Basically removing a minus
         if inverse:
-            op = lambda f, index, k:  np.sum(f * math.e**( (2j * math.pi * k * index) / f.shape[1]), axis=1) 
-            coef = lambda k, N: math.e** (2j * math.pi * k / N)
+            op = lambda f, index, k:  np.sum(f * math.e**( (1j * 2 * math.pi * k * index) / f.shape[1]), axis=1) 
+            coef = lambda k, N: math.e** (1j * 2 * math.pi * k / N)
 
         index_map_M = create_index_map(signal, 1, 0)
-        index_map_N = create_index_map(signal, 0, 1)
+        index_map_N = create_index_map(signal, 0, 1).transpose(1,0,2)
 
         self.memo = {}
-        one_dim_result_transposed = np.array([ self._split(signal, index_map_M, k, coef, op) for k in range(signal.shape[1]) ])
+        one_dim_result_transposed = np.array([ self._split(signal, index_map_M, k, coef, op) for k in range(signal.shape[1]) ]).transpose(1,0,2)
         self.memo = {}
         two_dim_result = np.array([ self._split(one_dim_result_transposed, index_map_N, k, coef, op) for k in range(one_dim_result_transposed.shape[1]) ])
         self.memo = {}

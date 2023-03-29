@@ -26,7 +26,7 @@ def denoise(image, fourier):
     f_transform = fourier.fast_transform(image)
 
     # Set high frequencies to zero, CLI print number of non zero values left [ high frequencies -> 2pi/N * k not close to 0]
-    HIGH_FREQ_THRESH = math.pi * 1./2  # TODO: experiment with that number
+    HIGH_FREQ_THRESH = math.pi * 0.05  # TODO: experiment with that number
     frequencies = create_index_map(f_transform, 1, 0) * 2. * math.pi / f_transform.shape[1]
     f_transform[frequencies < HIGH_FREQ_THRESH] = 0
     f_transform[frequencies > (2. * math.pi - HIGH_FREQ_THRESH)] = 0
@@ -37,7 +37,7 @@ def denoise(image, fourier):
     # Display original image & denoised image
     figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(5,5))
     ax1.imshow(image)
-    ax2.imshow(inverse_transform)
+    ax2.imshow(Utils.colorize(inverse_transform[:,:,0]))
     plt.show()
 
 
@@ -99,6 +99,28 @@ def plot(fourier):
     plt.show()
 
 
+def accuracy(image, fourier):
+    image = np.ones((2, 2, 3))
+    # Ours
+    naive_transform = fourier.normal_transform(image)
+    fast_transform = fourier.fast_transform(image)
+    # inverse_fast_transform = fourier.fast_transform(image, inverse=True)
+
+    # Numpy
+    np_fft = np.fft.fft2(image)
+    np_ifft = np.fft.ifft2(np_fft)
+
+    print(naive_transform)
+    print("---")
+    print(np_fft)
+
+    # RMSs
+    print("Root mean squared errors between our transforms & Numpy's:")
+    # print(f"\tNaive transform is\t{((naive_transform - np_fft)**2).mean()}")
+    print(f"\tFast transform is\t{((naive_transform - np_fft)**2).mean()}")
+    # print(f"\tFast inverse transform is\t{((inverse_fast_transform - np_ifft)**2).mean()}")
+
+
 if __name__ == "__main__":
     args = Utils.check_CLI()
     fourier = Fourier()
@@ -111,3 +133,5 @@ if __name__ == "__main__":
         compress(args["image"], fourier)
     if args["mode"] == 4:
         plot(fourier)
+    if args["mode"] == 5:
+        accuracy(args["image"], fourier)
