@@ -9,15 +9,15 @@ from time import time
 
 def run_fast_mode(image, fourier):
     # Perform transform from Fourier
-    f_transform = fourier.fast_transform(image)
+    print(image.shape)                          # (512, 1024, 3) TODO: why is it not the same
+    f_transform = fourier.fast_transform(image) #(1024, 512, 3) 
 
-    # Display original image & Log scale transform
-    n = np.array([[ [i] * f_transform.shape[2] for i  in range(f_transform.shape[1])] for j in range (f_transform.shape[0])])    
-    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(5,5))
+    # Display original image & Log scale transform 
+    figure, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(5,5))
     ax1.imshow(image)
-    ax2.scatter(n[:,:,0] , f_transform[:,:,0], norm=colors.LogNorm())
-    # ax3.scatter(n[:,:,0], np.fft.fft2(image[:,:,0]), norm=colors.LogNorm())
-    # plt.yscale('log')
+    print(f_transform.real.shape)
+    ax2.imshow(f_transform[:,:,0].real, norm=colors.LogNorm())
+    ax3.imshow(np.fft.fft2(image[:,:,0]).real, norm=colors.LogNorm())
     plt.show()
 # frequency: https://www.mathworks.com/help/matlab/math/fourier-transforms.html
 
@@ -37,7 +37,7 @@ def denoise(image, fourier):
     # Display original image & denoised image
     figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(5,5))
     ax1.imshow(image)
-    ax2.imshow(Utils.colorize(inverse_transform[:,:,0]))
+    ax2.imshow(inverse_transform.real[:,:,0], norm=colors.LogNorm())
     plt.show()
 
 
@@ -64,7 +64,7 @@ def compress(image, fourier):
     # Display the 6 images
     figure, axes = plt.subplots(2, 3, figsize=(5,5))
     for i in range(len(axes)):
-        axes[i].imshow(inverse_transforms[i])
+        axes[i].imshow(inverse_transforms[i].real[:,:,0], norm=colors.LogNorm())
 
     plt.show()
 
@@ -100,26 +100,83 @@ def plot(fourier):
 
 
 def accuracy(image, fourier):
-    image = np.ones((2, 2, 3))
+    # image = np.array([
+    #     [[1, 1, 1], [20,20,20] , [5,5,5], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
+    #     [[2, 2, 2], [10, 10, 10] , [7,7,7], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
+    # ])
+
     # Ours
-    naive_transform = fourier.normal_transform(image)
+    # naive_transform = fourier.normal_transform(image)
+    print('t')
     fast_transform = fourier.fast_transform(image)
+    print('tt')
     # inverse_fast_transform = fourier.fast_transform(image, inverse=True)
+    # print(naive_transform[:,:,0])
+    # print("----")
+    # print(fast_transform[:,:,0])
+    # print("----")
 
     # Numpy
-    np_fft = np.fft.fft2(image)
+    print('ttt')
+    np_fft = np.fft.fft2(image, axes=(0, 1))
+    print('tttt')
     np_ifft = np.fft.ifft2(np_fft)
-
-    print(naive_transform)
-    print("---")
-    print(np_fft)
-
+    # print(np_fft[:,:,0])
     # RMSs
+    rms = lambda y, z: np.sqrt(np.mean((y - z)**2))
     print("Root mean squared errors between our transforms & Numpy's:")
-    # print(f"\tNaive transform is\t{((naive_transform - np_fft)**2).mean()}")
-    print(f"\tFast transform is\t{((naive_transform - np_fft)**2).mean()}")
+    # print(f"\tNaive transform is\t{rms(naive_transform, np_fft)}")
+    print(f"\tFast transform is\t{rms(fast_transform, np_fft)}")
+    # print(f"\tFast transform is\t{((naive_transform - np_fft)**2).mean()}")
+    # print(f"\tFast transform is\t{((naive_transform - fast_transform)**2).mean()}")
     # print(f"\tFast inverse transform is\t{((inverse_fast_transform - np_ifft)**2).mean()}")
 
+    print(np.allclose(fast_transform, np_fft, rtol=0, atol=np.exp(-15)))
+    # print(np.allclose(naive_transform, np_fft, rtol=0, atol=np.exp(-15)))
+    # print(np.allclose(naive_transform, fast_transform, rtol=0, atol=np.exp(-15)))
+    
+def simple_accuracy_manual_example():
+    image = np.array([
+        [[1, 1, 1], [20,20,20]],
+        [[2, 2, 2], [10, 10, 10]]
+    ])
+
+    # print(-1j * 2 * np.pi * 1 / 2)
+
+    print(1* np.exp(0j * 0) + 20* np.exp(0j * 1))
+    print(1* np.exp(-3.141592653589793j * 0) + 20* np.exp(-3.141592653589793j * 1))
+
+
+    print(2* np.exp(0j * 0) + 10* np.exp(0j * 1))
+    print(2* np.exp(-3.141592653589793j * 0) + 10* np.exp(-3.141592653589793j * 1))
+
+    print("----")
+    row1 = [ 1, 20]
+    row2 = [2, 10]
+    print(np.fft.fft(row1))
+    print(np.fft.fft(row2))
+    
+    print("----")
+    print("----")
+    print((21+0j) * np.exp(0j * 0) + (12+0j) * np.exp(0j * 1))
+    print((-19-2.4492935982947065e-15j) * np.exp(0j * 0) + (-8-1.2246467991473533e-15j) * np.exp(0j * 1))
+    print((21+0j) * np.exp(-3.141592653589793j * 0) + (12+0j) * np.exp(-3.141592653589793j * 1))
+    print((-19-2.4492935982947065e-15j) * np.exp(-3.141592653589793j * 0) + (-8-1.2246467991473533e-15j) * np.exp(-3.141592653589793j * 1))
+    print("----")
+    row1 = [ 21.+0.j,  12.+0.j]
+    row2 = [ -19.+0.j, -8.+0.j]
+    print(np.fft.fft(row1))
+    print(np.fft.fft(row2))
+    print("----")
+    print("----")
+    mat = [
+        [1, 20],
+        [2, 10]
+    ]
+    
+    print(np.fft.fft2(mat))
+
+    return
 
 if __name__ == "__main__":
     args = Utils.check_CLI()

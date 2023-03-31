@@ -11,7 +11,7 @@ def exit_with_error(error):
     if error == "path": 
         print("Provided image path is incorrect.")
     if error == "type": 
-        print("Expected mode to be an integer in range [1, 4]")
+        print("Expected mode to be an integer in range [1, 5]")
 
     exit(1)
 
@@ -69,19 +69,3 @@ def selection_matrix(shape, factor):
 
     # Add back channels
     return  np.stack((two_dims,)*shape[-1], axis=-1)
-
-
-# Source: https://stackoverflow.com/questions/17044052/how-to-create-a-phase-plot-for-a-2d-array-of-complex-numbers-with-matplotlib
-def colorize(z):
-    r = np.abs(z)
-    arg = np.angle(z) 
-
-    h = (arg + pi)  / (2 * pi) + 0.5
-    l = 1.0 - 1.0/(1.0 + r**0.3)
-    s = 0.8
-
-    c = np.vectorize(hls_to_rgb) (h,l,s) # --> tuple
-    c = np.array(c)  # -->  array of (3,n,m) shape, but need (n,m,3)
-    c = c.transpose(1,2,0)
-
-    return c
