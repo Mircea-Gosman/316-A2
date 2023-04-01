@@ -1,9 +1,11 @@
 import numpy as np
 
-FFT_REC_THRESHOLD = 50 # TODO: Experiment on that number
+FFT_REC_THRESHOLD = 2 # TODO: Experiment on that number
 
 create_index_map = lambda signal, w, h: np.array([[ [i] * signal.shape[2] for i in range(signal.shape[w]) ] for j in range(signal.shape[h]) ])
-X_k = lambda f, index, k: np.sum(f*np.exp( (-1j * 2 * np.pi * k * index) / f.shape[1]), axis=1)
+X_k = lambda f, index, k, j_coef=-1: np.sum(f*np.exp( (j_coef * 1j * 2 * np.pi * k * index) / f.shape[1]), axis=1)
+#create_coefs = lambda shape, k, div=2, j_coef=-1: np.stack((np.exp(j_coef * 1j * 2 * np.pi * np.arange(0, shape[0] // div) * k / (shape[0] // div)),) *shape[-1], axis=-1)
+create_coefs = lambda shape, k, div=2, j_coef=-1: np.exp(j_coef * 1j * 2 * np.pi * np.arange(0, shape[0] // div) * k / (shape[0] // div))
 
 class Fourier:
     def normal_transform(self, signal): # signal shape is img.height, img.width, channels
@@ -19,37 +21,24 @@ class Fourier:
 
 
     def fast_transform(self, signal, inverse=False):
-        coef = lambda k, N: np.exp(-1j * 2 * np.pi * k / N)
-        op = X_k
-
-        # Basically removing a minus
-        if inverse:
-            op = lambda f, index, k:  np.sum(f * np.exp( (1j * 2 * np.pi * k * index) / f.shape[1]), axis=1) 
-            coef = lambda k, N: np.exp(1j * 2 * np.pi * k / N)
-
-
-        self.memo = {}
-        one_dim_result_transposed = np.array([ self._split(signal, k, coef, op) for k in range(signal.shape[1]) ])#.transpose(1,0,2)
-        self.memo = {}
-        print("q")
-        two_dim_result = np.array([ self._split(one_dim_result_transposed, k, coef, op) for k in range(one_dim_result_transposed.shape[1]) ])
-        self.memo = {}
+        j_coef = 1 if inverse else -1
+        middle_coef = lambda k, N: np.exp(j_coef * 1j * 2 * np.pi * k / N)
         
-        return two_dim_result if not inverse else two_dim_result / (signal.shape[0] * signal.shape[1])
-    
+        # one_dim_res = np.array([ [ self._split(row, j_coef, k, middle_coef, create_coefs(row.shape, k, 1, j_coef)) for k in range(signal.shape[1])] for row in signal])
+        # two_dim_res_T = np.array([ [ self._split(row, j_coef, k, middle_coef, create_coefs(row.shape, k, 1, j_coef)) for k in range(signal.shape[0])] for row in one_dim_res.transpose(1,0,2)])
+        one_dim_res = np.apply_along_axis(lambda row: np.array([self._split(row, j_coef, k, middle_coef, create_coefs(row.shape, k, 1, j_coef)) for k in range(row.shape[0])]), axis=1, arr=signal)
+        two_dim_res_T = np.apply_along_axis(lambda row: np.array([self._split(row, j_coef, k, middle_coef, create_coefs(row.shape, k, 1, j_coef)) for k in range(row.shape[0])]), axis=1, arr=one_dim_res.transpose(1,0,2))
 
-    def _split(self, signal, k, coef, op):
-        signal_key = str(k) + ":" + np.array2string(signal)
+        return two_dim_res_T.transpose(1,0,2)
 
-        if signal_key in self.memo:
-            return self.memo[signal_key]
 
-        if signal.shape[1] <= FFT_REC_THRESHOLD or signal.shape[1] == 1:
-            index = np.stack((np.mgrid[0:signal.shape[1], 0:signal.shape[0]][0].T,) *signal.shape[-1], axis=-1)
-            self.memo[signal_key] = op(signal, index, k)
-            return self.memo[signal_key]
-
-        odd = signal[:, 1::2]
-        even = signal[:, ::2]
+    def _split(self, d1_signal, j_coef, k, middle_coef, coefs):
+        if d1_signal.shape[0] <= FFT_REC_THRESHOLD or d1_signal.shape[0] == 1:
+            return np.sum(d1_signal * coefs, axis=0)
         
-        return self._split(even, k, coef, op) + coef(k, signal.shape[1]) * self._split(odd, k, coef, op)
+        coefs = create_coefs(d1_signal.shape, k, 2, j_coef)
+
+        odd = self._split(d1_signal[1::2], j_coef, k, middle_coef, coefs)
+        even = self._split(d1_signal[::2], j_coef, k, middle_coef, coefs)
+
+        return even + middle_coef(k, d1_signal.shape[0]) * odd
