@@ -100,10 +100,10 @@ def plot(fourier):
 
 
 def accuracy(image, fourier):
-    image = np.array([
-        [[1, 1, 1], [20,20,20] , [5,5,5], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
-        [[2, 2, 2], [10, 10, 10] , [7,7,7], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
-    ])
+    # image = np.array([
+    #     [[1, 1, 1], [20,20,20] , [5,5,5], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
+    #     [[2, 2, 2], [10, 10, 10] , [7,7,7], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
+    # ])
 
     # Ours
     # naive_transform = fourier.normal_transform(image)
@@ -111,7 +111,8 @@ def accuracy(image, fourier):
     np_fft = np.fft.fft2(image, axes=(0, 1))
     print('tttt')
     print('t')
-    fast_transform = fourier.fast_transform(image)
+    # fast_transform = fourier.fast_transform(image)
+    fast_transform = np.stack((fourier.fft2(image[:,:,0]),) *3, axis=-1)
     print('tt')
     # inverse_fast_transform = fourier.fast_transform(image, inverse=True)
     # print(naive_transform[:,:,0])
