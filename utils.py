@@ -2,7 +2,8 @@ import sys
 import math
 import cv2
 import numpy as np
-from numpy import pi
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from colorsys import hls_to_rgb
 
 def exit_with_error(error):
@@ -29,7 +30,7 @@ def pad_image(image):
 def check_CLI():
     args = {
         "mode": 1,
-        "image": cv2.imread("moonlanding.png") # Numpy array
+        "image": plt.imread("moonlanding.png").astype(float) # Numpy array
     }
 
     if len(sys.argv) < 3:
@@ -50,7 +51,7 @@ def check_CLI():
             if i == len(sys.argv) - 1:
                 exit_with_error("syntax")
 
-            args["image"] = cv2.imread(sys.argv[i + 1])
+            args["image"] = plt.imread(sys.argv[i + 1]).astype(float)
 
     if args["image"] is None:
         exit_with_error("path")
@@ -69,3 +70,27 @@ def selection_matrix(shape, factor):
 
     # Add back channels
     return  np.stack((two_dims,)*shape[-1], axis=-1)
+
+
+def plot_transform(image, transform):
+    # Shift the transform to center it on the plot
+    transform = np.fft.fftshift(transform)
+
+    # Plot
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(7,5))
+
+    ax1.imshow(image, cmap=plt.cm.gray)
+    transform_plot = ax2.imshow(np.abs(transform), norm=colors.LogNorm(vmin=5))
+    figure.colorbar(transform_plot, ax=ax2, fraction=0.026)
+
+    plt.show()
+
+
+def plot_images(images, dims):
+    _, axes = plt.subplots(*dims, figsize=(15,15))
+    plt.gray() 
+    
+    for i in range(len(images)):        
+        axes[i].imshow(np.abs(images[i]))
+
+    plt.show()

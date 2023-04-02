@@ -1,49 +1,27 @@
+import utils as Utils
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-import utils as Utils
-from fourier_operations import Fourier
+import fourier_operations as Fourier
 from fourier_operations import create_index_map
 import numpy as np
 import math
 from time import time
 
-def run_fast_mode(image, fourier):
+def run_fast_mode(image):
+    f_transform = Fourier.fast_transform(image)
+    Utils.plot_transform(image, f_transform)
+
+
+def denoise(image, HIGH_FREQ_THRESH=[np.pi * 0.09,  np.pi * 0.09]):
+    f_transform        = Fourier.fast_transform(image)     
+    filtered_transform = Fourier.filter_frequencies(f_transform, HIGH_FREQ_THRESH)
+    inverse_transform  = Fourier.fast_transform(filtered_transform, inverse=True)
+    Utils.plot_images([image, inverse_transform], [1, 2])
+
+
+def compress(image):
     # Perform transform from Fourier
-    print(image.shape)                          # (512, 1024, 3) TODO: why is it not the same
-    f_transform = fourier.fast_transform(image) #(1024, 512, 3) 
-
-    # Display original image & Log scale transform 
-    figure, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(5,5))
-    ax1.imshow(image)
-    print(f_transform.real.shape)
-    ax2.imshow(f_transform[:,:,0].real, norm=colors.LogNorm())
-    ax3.imshow(np.fft.fft2(image[:,:,0]).real, norm=colors.LogNorm())
-    plt.show()
-# frequency: https://www.mathworks.com/help/matlab/math/fourier-transforms.html
-
-def denoise(image, fourier):
-    # Perform transform from Fourier
-    f_transform = fourier.fast_transform(image)
-
-    # Set high frequencies to zero, CLI print number of non zero values left [ high frequencies -> 2pi/N * k not close to 0]
-    HIGH_FREQ_THRESH = math.pi * 0.05  # TODO: experiment with that number
-    frequencies = create_index_map(f_transform, 1, 0) * 2. * math.pi / f_transform.shape[1]
-    f_transform[frequencies < HIGH_FREQ_THRESH] = 0
-    f_transform[frequencies > (2. * math.pi - HIGH_FREQ_THRESH)] = 0
-
-    # Perform inverse transform from Fourier
-    inverse_transform = fourier.fast_transform(f_transform, inverse=True)
-
-    # Display original image & denoised image
-    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(5,5))
-    ax1.imshow(image)
-    ax2.imshow(inverse_transform.real[:,:,0], norm=colors.LogNorm())
-    plt.show()
-
-
-def compress(image, fourier):
-    # Perform transform from Fourier
-    f_transform = fourier.fast_transform(image)
+    f_transform = Fourier.fast_transform(image)
 
     # Save matrix of coefficients to csv 
     np.savetxt("compression_fourier_transform.csv", f_transform[:, :, 0], delimiter=",") # Saving only 1 channel for demo purposes
@@ -59,7 +37,7 @@ def compress(image, fourier):
         print(f'Image {i} is using {int(original_size * (1 - compression_factors[i]))} out of {original_size}')
 
     # Inverse each of the 6 resulting transforms
-    inverse_transforms = [ fourier.fast_transform(transforms[i], inverse=True) for i in range(6) ]
+    inverse_transforms = [ Fourier.fast_transform(transforms[i], inverse=True) for i in range(6) ]
 
     # Display the 6 images
     figure, axes = plt.subplots(2, 3, figsize=(5,5))
@@ -69,7 +47,7 @@ def compress(image, fourier):
     plt.show()
 
 
-def plot(fourier):
+def plot():
     num_iterations = 10
     sizes = [2**5, 2**6, 2**7, 2**8,2**9,2**10]
     times = np.empty((2, len(sizes), num_iterations)) # [ naive[size][iteration], fast[size][iteration] ]
@@ -83,7 +61,7 @@ def plot(fourier):
             for t in range(len(times)):
                 signal = np.random.rand(sizes[s], sizes[s], 3)
                 start = time()
-                _ = fourier.fast_transform(signal) if t == 1 else fourier.normal_transform(signal)
+                _ = Fourier.fast_transform(signal) if t == 1 else Fourier.normal_transform(signal)
                 times[t][s][i] = time() - start
 
     # Record mean and standard deviation per problem size
@@ -99,100 +77,46 @@ def plot(fourier):
     plt.show()
 
 
-def accuracy(image, fourier):
+def accuracy(image, TOLERANCE=-10):
+    # Smaller Toy Data
     # image = np.array([
     #     [[1, 1, 1], [20,20,20] , [5,5,5], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
     #     [[2, 2, 2], [10, 10, 10] , [7,7,7], [1, 1, 1], [20,20,20] , [5,5,5], [10, 10, 10] , [7,7,7]],
     # ])
 
-    # Ours
-    # naive_transform = fourier.normal_transform(image)
-    print('ttt')
-    np_fft = np.fft.fft2(image, axes=(0, 1))
-    print('tttt')
-    print('t')
-    # fast_transform = fourier.fast_transform(image)
-    fast_transform = np.stack((fourier.fft2(image[:,:,0]),) *3, axis=-1)
-    print('tt')
-    # inverse_fast_transform = fourier.fast_transform(image, inverse=True)
-    # print(naive_transform[:,:,0])
-    # print("----")
-    # print(fast_transform[:,:,0])
-    # print("----")
+    # Results
+    naive_transform = Fourier.normal_transform(image)[:,:,0]
+    fast_transform = Fourier.fast_transform(image)
+    inverse_fast_transform = Fourier.fast_transform(naive_transform, inverse=True)
 
-    # Numpy
-    print('ttt')
-    np_fft = np.fft.fft2(image, axes=(0, 1))
-    print('tttt')
-    np_ifft = np.fft.ifft2(np_fft)
-    # print(np_fft[:,:,0])
-    # RMSs
+    # Numpy Results
+    print("Checking Numpy Transforms...")
+    np_fft = np.fft.fft2(image, axes=(0, 1))[:,:,0]
+    np_ifft = np.fft.ifft2(np_fft, axes=(0, 1))
+    
+    # RMSs & Tolerances
     rms = lambda y, z: np.sqrt(np.mean((y - z)**2))
+    naive_tol = np.allclose(naive_transform, np_fft, rtol=0, atol=np.exp(TOLERANCE))
+    fast_tol = np.allclose(fast_transform, np_fft, rtol=0, atol=np.exp(TOLERANCE))
+    fast_inv_tol = np.allclose(naive_transform, np_fft, rtol=0, atol=np.exp(TOLERANCE))
+
+    # Display
     print("Root mean squared errors between our transforms & Numpy's:")
-    # print(f"\tNaive transform is\t{rms(naive_transform, np_fft)}")
-    print(f"\tFast transform is\t{rms(fast_transform, np_fft)}")
-    # print(f"\tFast transform is\t{((naive_transform - np_fft)**2).mean()}")
-    # print(f"\tFast transform is\t{((naive_transform - fast_transform)**2).mean()}")
-    # print(f"\tFast inverse transform is\t{((inverse_fast_transform - np_ifft)**2).mean()}")
+    print(f"\tNaive transform is\t\t{rms(naive_transform, np_fft)}\t\t| Within 10^{TOLERANCE} tolerance:\t{naive_tol}")
+    print(f"\tFast transform is\t\t{rms(fast_transform, np_fft)}\t\t| Within 10^{TOLERANCE} tolerance:\t{fast_tol}")
+    print(f"\tFast inverse transform is\t{rms(inverse_fast_transform, np_ifft)}\t\t| Within 10^{TOLERANCE} tolerance:\t{fast_inv_tol}")
 
-    print(np.allclose(fast_transform, np_fft, rtol=0, atol=np.exp(-15)))
-    # print(np.allclose(naive_transform, np_fft, rtol=0, atol=np.exp(-15)))
-    # print(np.allclose(naive_transform, fast_transform, rtol=0, atol=np.exp(-15)))
     
-def simple_accuracy_manual_example():
-    image = np.array([
-        [[1, 1, 1], [20,20,20]],
-        [[2, 2, 2], [10, 10, 10]]
-    ])
-
-    # print(-1j * 2 * np.pi * 1 / 2)
-
-    print(1* np.exp(0j * 0) + 20* np.exp(0j * 1))
-    print(1* np.exp(-3.141592653589793j * 0) + 20* np.exp(-3.141592653589793j * 1))
-
-
-    print(2* np.exp(0j * 0) + 10* np.exp(0j * 1))
-    print(2* np.exp(-3.141592653589793j * 0) + 10* np.exp(-3.141592653589793j * 1))
-
-    print("----")
-    row1 = [ 1, 20]
-    row2 = [2, 10]
-    print(np.fft.fft(row1))
-    print(np.fft.fft(row2))
-    
-    print("----")
-    print("----")
-    print((21+0j) * np.exp(0j * 0) + (12+0j) * np.exp(0j * 1))
-    print((-19-2.4492935982947065e-15j) * np.exp(0j * 0) + (-8-1.2246467991473533e-15j) * np.exp(0j * 1))
-    print((21+0j) * np.exp(-3.141592653589793j * 0) + (12+0j) * np.exp(-3.141592653589793j * 1))
-    print((-19-2.4492935982947065e-15j) * np.exp(-3.141592653589793j * 0) + (-8-1.2246467991473533e-15j) * np.exp(-3.141592653589793j * 1))
-    print("----")
-    row1 = [ 21.+0.j,  12.+0.j]
-    row2 = [ -19.+0.j, -8.+0.j]
-    print(np.fft.fft(row1))
-    print(np.fft.fft(row2))
-    print("----")
-    print("----")
-    mat = [
-        [1, 20],
-        [2, 10]
-    ]
-    
-    print(np.fft.fft2(mat))
-
-    return
-
 if __name__ == "__main__":
     args = Utils.check_CLI()
-    fourier = Fourier()
 
     if args["mode"] == 1:
-        run_fast_mode(args["image"], fourier)
+        run_fast_mode(args["image"])
     if args["mode"] == 2:
-        denoise(args["image"], fourier)
+        denoise(args["image"])
     if args["mode"] == 3:
-        compress(args["image"], fourier)
+        compress(args["image"])
     if args["mode"] == 4:
-        plot(fourier)
+        plot()
     if args["mode"] == 5:
-        accuracy(args["image"], fourier)
+        accuracy(args["image"])
