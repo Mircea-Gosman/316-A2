@@ -14,7 +14,7 @@ def exit_with_error(error):
     if error == "path": 
         print("Provided image path is incorrect.")
     if error == "type": 
-        print("Expected mode to be an integer in range [1, 5]")
+        print("Expected mode to be an integer in range [1, 6]")
 
     exit(1)
 
@@ -46,8 +46,8 @@ def check_CLI():
 
             try:
                 args["mode"] = int(sys.argv[i + 1])
-                if args["mode"] > 5 or args["mode"] < 0:
-                    raise ValueError("Mode should be an integer between 1 and 5 inclusive.")
+                if args["mode"] > 6 or args["mode"] < 0:
+                    raise ValueError("Mode should be an integer between 1 and 6 inclusive.")
             except:                
                 exit_with_error("type")
 
@@ -93,6 +93,7 @@ def runtime(num_iterations, sizes):
     times = np.empty((2, len(sizes), num_iterations)) # [ naive[size][iteration], fast[size][iteration] ]
 
     for i in range(num_iterations):
+        print(f"Running Iteration {i+1} out of {num_iterations}\n---------------------------------")
         for s in range(len(sizes)):            
             for t in range(len(times)):
                 signal = np.random.rand(sizes[s], sizes[s])
@@ -133,12 +134,17 @@ def plot_images(images, dims):
 
 # Plot: x -> problem size, y -> corresponding runtime mean
 # Include error bars to be twice the standard deviation 
-def plot_statistics(sizes, means, std_devs, labels):
+def plot_statistics(sizes, means, std_devs, labels, axis_titles=['Problem Unliateral Size (pixels)', 'Runtime (s)']):
+    print("Sizes:")
+    print(sizes)
+
     for i in range(len(labels)): 
         plt.errorbar(sizes, means[i], yerr= 2*std_devs[i], label = labels[i])
+        print(f"{labels[i]} Means:\t\t{means[i]}")
+        print(f"{labels[i]} Standard Deviations:\t{std_devs[i]}")
     
     plt.title('FFT & Naive Transform Runtimes as a function of problem size', fontsize=12)
-    plt.xlabel('Problem Unliateral Size (pixels)', fontsize=10)
-    plt.ylabel('Runtime (s)', fontsize=10)
+    plt.xlabel(axis_titles[0], fontsize=10)
+    plt.ylabel(axis_titles[1], fontsize=10)
     plt.legend()
     plt.show()

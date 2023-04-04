@@ -1,8 +1,6 @@
 import numpy as np
 import utils as Utils
 
-FFT_REC_THRESHOLD = 10 # TODO: Experiment on that number
-
 create_index_map = lambda signal, w, h: np.concatenate([[np.mgrid[0:signal.shape[w], 0:signal.shape[-1]][0]]] * signal.shape[h], axis=0)
 X_k = lambda f, index, k, j_coef=-1, axis=1: np.sum(f*np.exp( (j_coef * 1j * 2 * np.pi * k * index) / f.shape[axis]), axis=axis)
 
@@ -17,7 +15,7 @@ def normal_transform(signal):
     return two_dim_result   
 
 
-def fast_transform(signal, inverse=False):
+def fast_transform(signal, FFT_REC_THRESHOLD=32, inverse=False):
     annoucement = "Taking FFT..." if not inverse else "Taking Inverse..."
     print(annoucement)
 
@@ -27,21 +25,21 @@ def fast_transform(signal, inverse=False):
     d2 = np.empty(signal.shape,dtype = 'complex_')
     
     for n in range(signal.shape[0]):
-        d1[n,:] = fft(signal[n,:], j_coef)
+        d1[n,:] = fft(signal[n,:], j_coef, FFT_REC_THRESHOLD)
 
     for m in range(signal.shape[1]):
-        d2[:, m] = fft(d1[:,m], j_coef)
+        d2[:, m] = fft(d1[:,m], j_coef, FFT_REC_THRESHOLD)
 
     return d2 if not inverse else d2 / (signal.shape[0] * signal.shape[1])
 
 
-def fft(signal, j_coeff):
+def fft(signal, j_coeff, FFT_REC_THRESHOLD):
     if signal.shape[0] == 1 or signal.shape[0] < FFT_REC_THRESHOLD:
         return np.array([ X_k(signal, np.arange(signal.shape[0]), k, j_coeff, 0) for k in range(signal.shape[0]) ])
     
     coeffs = np.exp(j_coeff * 2j * np.pi * np.arange(signal.shape[0]) / signal.shape[0])
-    x_even = fft(signal[::2], j_coeff)
-    x_odd = fft(signal[1::2], j_coeff)
+    x_even = fft(signal[::2], j_coeff, FFT_REC_THRESHOLD)
+    x_odd = fft(signal[1::2], j_coeff, FFT_REC_THRESHOLD)
 
     # Book Reference for Concatenation use case: https://pythonnumericalmethods.berkeley.edu/notebooks/chapter24.03-Fast-Fourier-Transform.html#tricks-in-fft
     return np.concatenate([x_even + coeffs[:signal.shape[0]//2] * x_odd, x_even + coeffs[signal.shape[0]//2:] * x_odd])
@@ -77,7 +75,7 @@ def filter_frequencies(signal, thresholds, scheme="high_frequency", verbose=True
 
 
 # Set some coefficients to zero (6 different amounts of compression)
-def compress(signal, factors, scheme="high_frequency"):
+def compress(signal, factors, scheme="threshold"):
     if scheme == "random":
         transforms = [ np.copy(signal) * Utils.selection_matrix(signal.shape, factors[i]) for i in range(len(factors)) ]
     else:
@@ -89,12 +87,13 @@ def compress(signal, factors, scheme="high_frequency"):
             if scheme == "threshold":
                 quantity_to_remove = np.floor(signal.size*factors[i])
                 if quantity_to_remove != 0:
-                    transform[Utils.largest_indices(transform, quantity_to_remove)] = 0
+                    indices = Utils.largest_indices(transform, quantity_to_remove)
+                    transform[indices] = 0    
             else:
                 # Frequencies schemes (one of low_frequency or high_frequency)
                 transform = filter_frequencies(transform, [factors[i] * np.pi, factors[i] * np.pi], scheme, verbose=False)
             
-            transforms.append(transform)
+            transforms.append(np.copy(transform))
 
         transforms = np.array(transforms)        
 
@@ -102,10 +101,10 @@ def compress(signal, factors, scheme="high_frequency"):
         transforms = np.flip(transforms, axis=0)
 
     # Save matrices of coefficients to csv & Print used coefficient count
-    np.savetxt("./compression_data/empty_file.csv", np.array([0]), delimiter=",") # Baseline to get file overhead
+    np.savetxt(f"./compression_data/non-compressed_fourier_transform.csv", np.zeros(transforms[i].shape, dtype="complex"), delimiter=",") # Minimum Possible
     for i in range(len(transforms)):
         np.savetxt(
-            f"./compression_data/non-compressed_fourier_transform-{factors[i]}%.csv", 
+            f"./compression_data/compressed_fourier_transform-{factors[i]}%.csv", 
             transforms[i], 
             delimiter=","
         )
