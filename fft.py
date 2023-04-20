@@ -1,6 +1,9 @@
+import time
+import numpy as np
+
 import utils as Utils
 import fourier_operations as Fourier
-import numpy as np
+
 
 def run_fast_mode(image):
     f_transform = Fourier.fast_transform(image)
@@ -64,7 +67,7 @@ def find_FFT_REC_TRESHOLD(image):
     times = []
     res = []
     np_res = []
-    import time
+
     for val in vals:
         start = time.time()
         res.append(Fourier.fast_transform(image,FFT_REC_THRESHOLD=val))
@@ -78,7 +81,6 @@ def find_FFT_REC_TRESHOLD(image):
     
     Utils.plot_statistics(vals, [acc], [np.zeros(vals.shape), np.zeros(vals.shape)], labels=["Accuracy"], axis_titles=["Threshold Values", "RMS"])
     Utils.plot_statistics(vals, [times], [np.zeros(vals.shape), np.zeros(vals.shape)], labels=["Runtime"], axis_titles=["Threshold Values", "Runtime (s)"])
-    pass
  
     
 if __name__ == "__main__":
